@@ -11,6 +11,7 @@ import messages.Messages;
 import messages.RussianMessages;
 import messages.SerbianMessages;
 import org.bson.Document;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -34,9 +35,14 @@ public class Rest {
         try (InputStream input = new FileInputStream(System.getProperty("propPath"))) {
             Properties prop = new Properties();
             prop.load(input);
-            Props.setBotToken(prop.getProperty("bot.token"));
-            Props.setMongoHost(prop.getProperty("mongo.host"));
-            Props.setMongoPort(Integer.parseInt(prop.getProperty("mongo.port")));
+            System.out.println();
+            System.out.println("bot.token - " + prop.getProperty("bot.token"));
+            System.out.println("mongo.host - " + prop.getProperty("mongo.host"));
+            System.out.println("mongo.port - " + prop.getProperty("mongo.port"));
+            System.out.println();
+            Props.setBotToken(getFilePropertyOrSystemProperty(prop, "bot.token"));
+            Props.setMongoHost(getFilePropertyOrSystemProperty(prop, "mongo.host"));
+            Props.setMongoPort(Integer.parseInt(getFilePropertyOrSystemProperty(prop, "mongo.port")));
         } catch (IOException ex) {
             ex.printStackTrace();
         }
@@ -68,6 +74,11 @@ public class Rest {
         }
     }
 
+    @GetMapping("/health_check")
+    public void healthCheck() {
+
+    }
+
     private void prolongSubscriptionFor(String chatId, int months) {
         LocalDate currentLastDayOfSubscription = LocalDate.parse(((Document)users.find(new Document().append("chatId", chatId)).first()).getString("lastDayOfSubscription"));
         LocalDate newLastDayOfSubscription;
@@ -92,5 +103,12 @@ public class Rest {
             default:
                 throw new IllegalArgumentException();
         }
+    }
+
+    private String getFilePropertyOrSystemProperty(Properties fileProperties, String key) {
+        if (System.getProperties().containsKey(key) && !System.getProperty(key).equals("")) {
+            return System.getProperty(key);
+        }
+        return fileProperties.getProperty(key);
     }
 }
